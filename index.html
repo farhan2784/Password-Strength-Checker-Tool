@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>🔒 Password Strength Checker</title>
+  <!-- Tailwind CSS via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- zxcvbn for password strength -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/zxcvbn/4.4.2/zxcvbn.js"></script>
+  <style>
+    .strength-bar {
+      height: 8px;
+      border-radius: 4px;
+      transition: all 0.3s ease;
+    }
+    .toggle-password {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      cursor: pointer;
+      color: #6b7280;
+    }
+    .dark-mode .bg-dark-bg { background-color: #111827; }
+    .dark-mode .text-dark-text { color: #f3f4f6; }
+    .dark-mode .bg-dark-card { background-color: #1f2937; }
+    .dark-mode .border-dark { border-color: #374151; }
+    .dark-mode .text-dark-muted { color: #9ca3af; }
+    .transition-all { transition: all 0.3s ease; }
+  </style>
+</head>
+<body class="min-h-screen p-4 transition-all duration-300" id="body">
+  <div class="w-full max-w-md mx-auto mt-8">
+    <!-- Dark Mode Toggle -->
+    <div class="flex justify-end mb-4">
+      <button id="darkModeToggle" class="p-2 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 focus:outline-none">
+        🌙
+      </button>
+    </div>
+
+    <div class="bg-white dark:bg-dark-card rounded-xl shadow-lg p-6 transition-all" id="card">
+      <h1 class="text-2xl font-bold text-gray-800 dark:text-dark-text text-center mb-6">🔒 Password Strength Checker</h1>
+      <p class="text-sm text-gray-600 dark:text-dark-muted text-center mb-6">
+        Check how strong your password is — <span class="font-semibold">no data is sent to any server</span>.
+      </p>
+
+      <div class="mb-4 relative">
+        <label for="password" class="block text-sm font-medium text-gray-700 dark:text-dark-text mb-2">Enter Password</label>
+        <input
+          type="password"
+          id="password"
+          class="w-full px-4 py-3 border border-gray-300 dark:border-dark rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition pr-12 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+          placeholder="Type your password..."
+          autocomplete="off"
+        />
+        <button type="button" id="togglePassword" class="toggle-password">
+          👁️
+        </button>
+      </div>
+
+      <!-- Strength Bar -->
+      <div class="mb-4">
+        <div id="strengthBar" class="strength-bar bg-gray-200 w-full"></div>
+        <div id="strengthLabel" class="text-sm font-medium mt-2 text-gray-500 dark:text-dark-muted">No password entered</div>
+      </div>
+
+      <!-- Details -->
+      <div id="details" class="text-sm text-gray-600 dark:text-dark-muted space-y-1 mt-4 hidden">
+        <div><span class="font-medium">Estimated Crack Time:</span> <span id="crackTime"></span></div>
+        <div><span class="font-medium">Score:</span> <span id="score"></span>/4</div>
+        <div id="warning" class="text-orange-500 font-medium"></div>
+        <div id="suggestions" class="text-blue-500"></div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="flex flex-col sm:flex-row gap-3 mt-6">
+        <button id="generateBtn" class="flex-1 px-4 py-2 bg-gradient-to-r from-purple-500 to-indigo-600 text-white font-medium rounded-lg hover:opacity-90 transition">
+          🎲 Generate Strong Password
+        </button>
+        <button id="copyBtn" class="flex-1 px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 font-medium rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition" disabled>
+          📋 Copy to Clipboard
+        </button>
+      </div>
+    </div>
+
+    <div class="mt-6 text-center text-xs text-gray-500 dark:text-dark-muted">
+      <p>🔒 Built with <a href="https://github.com/dropbox/zxcvbn" class="text-blue-500 underline hover:text-blue-700" target="_blank">zxcvbn</a> — no passwords leave your browser.</p>
+    </div>
+  </div>
+
+  <script>
+    // DOM Elements
+    const passwordInput = document.getElementById('password');
+    const togglePassword = document.getElementById('togglePassword');
+    const strengthBar = document.getElementById('strengthBar');
+    const strengthLabel = document.getElementById('strengthLabel');
+    const details = document.getElementById('details');
+    const crackTimeEl = document.getElementById('crackTime');
+    const scoreEl = document.getElementById('score');
+    const warningEl = document.getElementById('warning');
+    const suggestionsEl = document.getElementById('suggestions');
+    const generateBtn = document.getElementById('generateBtn');
+    const copyBtn = document.getElementById('copyBtn');
+    const darkModeToggle = document.getElementById('darkModeToggle');
+    const body = document.getElementById('body');
+    const card = document.getElementById('card');
+
+    // Initialize dark mode
+    const isDarkMode = localStorage.getItem('darkMode') === 'true';
+    if (isDarkMode) {
+      enableDarkMode();
+    }
+
+    // Toggle password visibility
+    togglePassword.addEventListener('click', function() {
+      const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+      passwordInput.setAttribute('type', type);
+      this.textContent = type === 'password' ? '👁️' : '🙈';
+    });
+
+    // Check strength on input
+    passwordInput.addEventListener('input', function() {
+      const password = this.value;
+      copyBtn.disabled = !password;
+
+      if (!password) {
+        resetUI();
+        return;
+      }
+
+      const result = zxcvbn(password);
+      updateUI(result);
+    });
+
+    // Generate strong password
+    generateBtn.addEventListener('click', function() {
+      const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+~`|}{[]:;?><,./-=';
+      let password = '';
+      for (let i = 0; i < 16; i++) {
+        password += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      passwordInput.value = password;
+      copyBtn.disabled = false;
+      
+      // Trigger strength check
+      const result = zxcvbn(password);
+      updateUI(result);
+    });
+
+    // Copy to clipboard
+    copyBtn.addEventListener('click', async function() {
+      try {
+        await navigator.clipboard.writeText(passwordInput.value);
+        const originalText = this.textContent;
+        this.textContent = '✅ Copied!';
+        setTimeout(() => {
+          this.textContent = originalText;
+        }, 2000);
+      } catch (err) {
+        alert('Failed to copy. Please copy manually.');
+      }
+    });
+
+    // Dark mode toggle
+    darkModeToggle.addEventListener('click', function() {
+      const isCurrentlyDark = body.classList.contains('dark-mode');
+      if (isCurrentlyDark) {
+        disableDarkMode();
+        localStorage.setItem('darkMode', 'false');
+      } else {
+        enableDarkMode();
+        localStorage.setItem('darkMode', 'true');
+      }
+    });
+
+    function enableDarkMode() {
+      body.classList.add('dark-mode', 'bg-dark-bg', 'text-dark-text');
+      card.classList.add('bg-dark-card');
+      darkModeToggle.textContent = '☀️';
+    }
+
+    function disableDarkMode() {
+      body.classList.remove('dark-mode', 'bg-dark-bg', 'text-dark-text');
+      card.classList.remove('bg-dark-card');
+      darkModeToggle.textContent = '🌙';
+    }
+
+    function resetUI() {
+      strengthBar.className = 'strength-bar bg-gray-200 w-full';
+      strengthLabel.textContent = 'No password entered';
+      strengthLabel.className = 'text-sm font-medium mt-2 text-gray-500 dark:text-dark-muted';
+      details.classList.add('hidden');
+      copyBtn.disabled = true;
+    }
+
+    function updateUI(result) {
+      const score = result.score; // 0-4
+      let color = 'bg-red-500';
+      let label = 'Very Weak';
+
+      switch (score) {
+        case 0:
+          color = 'bg-red-500'; label = 'Very Weak';
+          break;
+        case 1:
+          color = 'bg-orange-500'; label = 'Weak';
+          break;
+        case 2:
+          color = 'bg-yellow-500'; label = 'Fair';
+          break;
+        case 3:
+          color = 'bg-green-400'; label = 'Good';
+          break;
+        case 4:
+          color = 'bg-green-600'; label = 'Very Strong';
+          break;
+      }
+
+      strengthBar.className = `strength-bar ${color} w-full`;
+      strengthLabel.textContent = label;
+      strengthLabel.className = 'text-sm font-medium mt-2';
+
+      // Show details
+      details.classList.remove('hidden');
+      crackTimeEl.textContent = result.crack_times_display.online_throttling_100_per_hour;
+      scoreEl.textContent = score;
+
+      // Warning
+      if (result.feedback.warning) {
+        warningEl.textContent = '⚠️ ' + result.feedback.warning;
+        warningEl.classList.remove('hidden');
+      } else {
+        warningEl.classList.add('hidden');
+      }
+
+      // Suggestions
+      if (result.feedback.suggestions && result.feedback.suggestions.length > 0) {
+        suggestionsEl.innerHTML = '💡 ' + result.feedback.suggestions.join('<br>💡 ');
+        suggestionsEl.classList.remove('hidden');
+      } else {
+        suggestionsEl.classList.add('hidden');
+      }
+    }
+  </script>
+</body>
+</html>
