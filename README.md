@@ -19,6 +19,34 @@ No external tracking or cookies — privacy-friendly
 📁 File Structure for S3
 You’ll upload just one file:
 
-index.html
-
+index.html 
 That’s it! ✅
+
+
+🚀 How to Deploy to AWS S3
+Step 1: Save the file
+Save the above code as index.html on your computer.
+
+Step 2: Upload to S3
+Go to AWS S3 Console
+Create a new bucket (e.g., my-password-checker-2025)
+Enable Static Website Hosting in bucket properties
+Index document: index.html
+Upload index.html to the bucket
+Set bucket policy for public read (if not already):
+
+json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "PublicReadGetObject",
+      "Effect": "Allow",
+      "Principal": "*",
+      "Action": "s3:GetObject",
+      "Resource": "arn:aws:s3:::YOUR-BUCKET-NAME/*"
+    }
+  ]
+}
+
+
