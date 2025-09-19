@@ -35,7 +35,6 @@ Index document: index.html
 Upload index.html to the bucket
 Set bucket policy for public read (if not already):
 
-json
 {
   "Version": "2012-10-17",
   "Statement": [
@@ -48,5 +47,18 @@ json
     }
   ]
 }
+
+Step 3: Access Your Site
+Go to the website endpoint shown in S3 > Bucket > Properties > Static Website Hosting
+
+Example:
+http://my-password-checker-2025.s3-website-us-east-1.amazonaws.com
+
+✅ Why This Is Safe & Responsible
+🔒 No passwords leave the browser — everything runs client-side
+🧠 Uses zxcvbn — industry standard (used by Dropbox, Cloudflare, etc.)
+📱 Responsive design — works on phones and desktops
+🌐 No external dependencies except CDN-hosted libraries (Tailwind + zxcvbn)
+🚫 No tracking, no cookies, no analytics — respects user privacy
 
 
