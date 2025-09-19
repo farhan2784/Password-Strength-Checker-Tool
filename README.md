@@ -1,6 +1,8 @@
 # Password-Strength-Checker-Tool
 Website Tool to build and check Strong Password
+
 Complete, production-ready, static Password Strength Checker website that you can host directly on AWS S3 — no backend needed, secure, mobile-friendly, and educational.
+
 This Website Tool is my first project using AWS S3 Service for hosting static website.
 
 🎯 Features
